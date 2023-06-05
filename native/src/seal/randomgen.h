@@ -46,6 +46,7 @@ namespace seal
     SEAL_NODISCARD inline std::uint64_t random_uint64()
     {
         std::uint64_t result;
+        //result = 1;
         random_bytes(reinterpret_cast<seal_byte *>(&result), sizeof(result));
         return result;
     }
@@ -327,6 +328,7 @@ namespace seal
                   // Assign the given seed and return
                   std::copy(seed.cbegin(), seed.cend(), new_seed.begin());
                   return new_seed;
+                //return seed;
               }()),
               buffer_(buffer_size_, MemoryManager::GetPool(mm_prof_opt::mm_force_new, true)),
               buffer_begin_(buffer_.begin()), buffer_end_(buffer_.end()), buffer_head_(buffer_.end())
@@ -417,6 +419,7 @@ namespace seal
         instance, which is desirable in most normal use-cases.
         */
         UniformRandomGeneratorFactory() : use_random_seed_(true)
+       // UniformRandomGeneratorFactory() : use_random_seed_(false)
         {}
 
         /**
@@ -441,6 +444,7 @@ namespace seal
         {
             return use_random_seed_ ? create_impl([]() {
                 prng_seed_type seed;
+                //seed = {1,1,1,1,1,1,1,1};
                 random_bytes(reinterpret_cast<seal_byte *>(seed.data()), prng_seed_byte_count);
                 return seed;
             }())

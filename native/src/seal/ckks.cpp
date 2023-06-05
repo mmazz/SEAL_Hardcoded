@@ -4,14 +4,35 @@
 #include "seal/ckks.h"
 #include <random>
 #include <stdexcept>
+#include <fstream>
+
 
 using namespace std;
 using namespace seal::util;
 
 namespace seal
 {
+    void saveData(std::string data)
+    {
+        std::fstream logFile;
+        // Open File
+        logFile.open("/home/mmazz/phd/fhe/sealProfile/log_ckks.txt", std::ios::app);
+        //Write data into log file
+        logFile << data << "\n";
+        // close file stream
+        logFile.close();
+
+    }
+
+    void write_text_to_log_file( const std::string &text )
+    {
+        std::ofstream log_file(
+            "/home/mmazz/log_file.txt", std::ios_base::out | std::ios_base::app );
+        log_file << text << std::endl;
+    }
     CKKSEncoder::CKKSEncoder(const SEALContext &context) : context_(context)
     {
+
         // Verify parameters
         if (!context_.parameters_set())
         {

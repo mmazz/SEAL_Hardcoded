@@ -1,0 +1,32 @@
+Tener simbolos en vim:
+
+Poner en CMakeLists.txt lo siguiente y recompilar.
+Tanto en SEAL, native/src/seal, y native/src/seal/util
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "") # works
+
+
+
+Intentando hardcodear la seed.
+
+cambios:
+
+encryptor.h linea 137. encryptor_internal( plaintext, is_asymmetric, save_seed, cipher, pool)
+cambie el save_seed por un true. np funco.
+
+
+encryptor.cpp linea 229, quiero cout cosas.
+Dentro de aca no me deja cout nada... no aparece en pantalla.
+
+randomgen.h:
+x linea 49, directamente doy el numero que da aleatorio. no hace falta
+x linea 304, la inicializo con 8 unos, pero siempre son 8? no hace falta
+x linea 324, no creo una nueva, no hace falta?
+x linea 420, puse false en random gen: no funco... no hace faltra
+x linea 446, creo que hardcodie seed en algo... no hace falta
+
+randomgen.cpp:
+- linea 39 y 45, estoy asignando 1, pero que es eso?... ERA SOLO ESTO!!!
+x linea 166, saque todo... : no hace falta!
+x linea 212 y 225 le saco lo que hace el refill: No hace falta!!!!
+

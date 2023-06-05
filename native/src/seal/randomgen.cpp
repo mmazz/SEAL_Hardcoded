@@ -35,13 +35,15 @@ namespace seal
         random_device rd("/dev/urandom");
         while (count >= 4)
         {
-            *reinterpret_cast<uint32_t *>(buf) = rd();
+            //*reinterpret_cast<uint32_t *>(buf) = rd();
+            *reinterpret_cast<uint32_t *>(buf) = 1;
             buf += 4;
             count -= 4;
         }
         if (count)
         {
-            uint32_t last = rd();
+            //uint32_t last = rd();
+            uint32_t last = 1;
             memcpy(buf, &last, count);
         }
 #elif SEAL_SYSTEM == SEAL_SYSTEM_WINDOWS

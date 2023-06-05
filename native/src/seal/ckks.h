@@ -22,6 +22,7 @@
 
 namespace seal
 {
+    void saveData(std::string data);
     template <
         typename T_out, typename = std::enable_if_t<
                             std::is_same<std::remove_cv_t<T_out>, double>::value ||
@@ -449,6 +450,9 @@ namespace seal
             const T *values, std::size_t values_size, parms_id_type parms_id, double scale, Plaintext &destination,
             MemoryPoolHandle pool) const
         {
+            std::string size = std::to_string(values_size);
+            std::string data = "El tamaño de los datos es de: ";
+            saveData(data+size);
             // Verify parameters.
             auto context_data_ptr = context_.get_context_data(parms_id);
             if (!context_data_ptr)
@@ -491,6 +495,7 @@ namespace seal
             // values_size is guaranteed to be no bigger than slots_
             std::size_t n = util::mul_safe(slots_, std::size_t(2));
 
+            // Aca lo expande con su complejo conjugado.
             auto conj_values = util::allocate<std::complex<double>>(n, pool, 0);
             for (std::size_t i = 0; i < values_size; i++)
             {
@@ -499,6 +504,7 @@ namespace seal
                 conj_values[matrix_reps_index_map_[i + slots_]] = std::conj(values[i]);
             }
             double fix = scale / static_cast<double>(n);
+            // algun tipo de multiplicacion, entenderla...
             fft_handler_.transform_from_rev(conj_values.get(), util::get_power_of_two(n), inv_root_powers_.get(), &fix);
 
             double max_coeff = 0;
@@ -526,32 +532,65 @@ namespace seal
             // Use faster decomposition methods when possible
             if (max_coeff_bit_count <= 64)
             {
+                std::string data = "Menos de 64bits ";
+                saveData(data);
+                std::string datai = "i<n ";
+                std::string n_str = std::to_string(n);
+                saveData(datai+n_str);
+
+                std::string data2 = "coeff_modulus_size ";
+                std::string coeff_size= std::to_string(coeff_modulus_size);
+                saveData(data2+coeff_size);
+                std::string data3 = "coeff_ count";
+                std::string coeff_count_st = std::to_string(coeff_count);
+                saveData(data3+coeff_count_st);
+                // Creo que va por cada valor del vector expandido por el complemento conj
+                // el j seria el elemento K del RNS.
+                // y es multiplicado por el coeff_count que es el grado del polinomio N
+                // Rec que es el doble del input que es N/2
                 for (std::size_t i = 0; i < n; i++)
                 {
                     double coeffd = std::round(conj_values[i].real());
                     bool is_negative = std::signbit(coeffd);
 
                     std::uint64_t coeffu = static_cast<std::uint64_t>(std::fabs(coeffd));
-
+                    std::uint64_t testing; // borrar despues.
                     if (is_negative)
                     {
                         for (std::size_t j = 0; j < coeff_modulus_size; j++)
                         {
-                            destination[i + (j * coeff_count)] = util::negate_uint_mod(
+                           // destination[i + (j * coeff_count)] = util::negate_uint_mod(
+                           //     util::barrett_reduce_64(coeffu, coeff_modulus[j]), coeff_modulus[j]);
+
+                            testing = util::negate_uint_mod(
                                 util::barrett_reduce_64(coeffu, coeff_modulus[j]), coeff_modulus[j]);
+                            destination[i + (j * coeff_count)] = testing;
+                            std::string destination_str = "plaintext value: ";
+                            std::string testing_str = std::to_string(testing);
+                            std::string index_str = std::to_string(i+(j*coeff_count));
+                            saveData(index_str+ ": "+ destination_str+testing_str);
                         }
                     }
                     else
                     {
                         for (std::size_t j = 0; j < coeff_modulus_size; j++)
                         {
-                            destination[i + (j * coeff_count)] = util::barrett_reduce_64(coeffu, coeff_modulus[j]);
+                            //destination[i + (j * coeff_count)] = util::barrett_reduce_64(coeffu, coeff_modulus[j]);
+                            testing = util::barrett_reduce_64(coeffu, coeff_modulus[j]);
+                            destination[i + (j * coeff_count)] = testing;
+                            std::string destination_str = "plaintext value: ";
+                            std::string testing_str = std::to_string(testing);
+                            std::string index_str = std::to_string(i+(j*coeff_count));
+                            saveData(index_str+ ": "+ destination_str+testing_str);
                         }
                     }
+
                 }
             }
             else if (max_coeff_bit_count <= 128)
-            {
+            {   std::string data = "Mas de 64bits ";
+                saveData(data);
+
                 for (std::size_t i = 0; i < n; i++)
                 {
                     double coeffd = std::round(conj_values[i].real());
@@ -579,7 +618,8 @@ namespace seal
                 }
             }
             else
-            {
+            {   std::string data = "otro caso ";
+                saveData(data);
                 // Slow case
                 auto coeffu(util::allocate_uint(coeff_modulus_size, pool));
                 for (std::size_t i = 0; i < n; i++)
