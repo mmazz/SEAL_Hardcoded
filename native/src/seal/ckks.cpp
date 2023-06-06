@@ -16,20 +16,41 @@ namespace seal
     {
         std::fstream logFile;
         // Open File
-        logFile.open("/home/mmazz/phd/fhe/sealProfile/log_ckks.txt", std::ios::app);
+        logFile.open("/home/mmazz/phd/fhe/sealProfile/log_values_plainText_ckks.txt", std::ios::app);
         //Write data into log file
         logFile << data << "\n";
         // close file stream
         logFile.close();
-
     }
 
-    void write_text_to_log_file( const std::string &text )
+    void savePlaintext(std::string data, int new_file)
     {
-        std::ofstream log_file(
-            "/home/mmazz/log_file.txt", std::ios_base::out | std::ios_base::app );
-        log_file << text << std::endl;
+        std::fstream logFile;
+        // Open File
+        if(new_file==1)
+            logFile.open("/home/mmazz/phd/fhe/sealProfile/log_values_plainText_nonNTT_ckks.txt", std::ios::out);
+        else
+            logFile.open("/home/mmazz/phd/fhe/sealProfile/log_values_plainText_nonNTT_ckks.txt", std::ios::app);
+        //Write data into log file
+        logFile << data << "\n";
+        // close file stream
+        logFile.close();
     }
+
+
+  //  void saveNTT_tables(const util::NTTTables * table, std::size_t coeff_modulus_size)
+  //  {
+  //      std::fstream logFile;
+  //      // Open File
+  //      logFile.open("/home/mmazz/phd/fhe/sealProfile/log_NTT_table_ckks.txt", std::ios::app);
+  //      //Write data into log file
+  //      logFile << data << "\n";
+  //      // close file stream
+  //      logFile.close();
+  //  }
+
+
+
     CKKSEncoder::CKKSEncoder(const SEALContext &context) : context_(context)
     {
 

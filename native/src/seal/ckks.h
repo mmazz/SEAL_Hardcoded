@@ -14,6 +14,7 @@
 #include <cmath>
 #include <complex>
 #include <limits>
+#include <string>
 #include <type_traits>
 #include <vector>
 #ifdef SEAL_USE_MSGSL
@@ -23,6 +24,8 @@
 namespace seal
 {
     void saveData(std::string data);
+    void savePlaintext(std::string data, int new_file);
+    // void saveNTT_tables(const util::NTTTables * table, std::size_t coeff_modulus_size);
     template <
         typename T_out, typename = std::enable_if_t<
                             std::is_same<std::remove_cv_t<T_out>, double>::value ||
@@ -450,9 +453,10 @@ namespace seal
             const T *values, std::size_t values_size, parms_id_type parms_id, double scale, Plaintext &destination,
             MemoryPoolHandle pool) const
         {
+            // borrar los saves
             std::string size = std::to_string(values_size);
-            std::string data = "El tamaño de los datos es de: ";
-            saveData(data+size);
+            std::string data = "value_size, parametro que recibe encode_internal: ";
+            saveData(data + size);
             // Verify parameters.
             auto context_data_ptr = context_.get_context_data(parms_id);
             if (!context_data_ptr)
@@ -491,6 +495,7 @@ namespace seal
             }
 
             auto ntt_tables = context_data.small_ntt_tables();
+            // saveNTT_tables(ntt_tables, coeff_modulus_size);
 
             // values_size is guaranteed to be no bigger than slots_
             std::size_t n = util::mul_safe(slots_, std::size_t(2));
@@ -531,64 +536,87 @@ namespace seal
 
             // Use faster decomposition methods when possible
             if (max_coeff_bit_count <= 64)
-            {
-                std::string data = "Menos de 64bits ";
-                saveData(data);
-                std::string datai = "i<n ";
-                std::string n_str = std::to_string(n);
-                saveData(datai+n_str);
+            {  // borrar todos estos saves y el for
+                std::string data0 = "Datos NTT_tables: ";
+                std::string ntt_coef_str = std::to_string(ntt_tables->coeff_count());
+                std::string ntt_root_str = std::to_string(ntt_tables->get_root());
+                saveData(data0 + ntt_coef_str + " " + ntt_root_str);
 
-                std::string data2 = "coeff_modulus_size ";
-                std::string coeff_size= std::to_string(coeff_modulus_size);
-                saveData(data2+coeff_size);
-                std::string data3 = "coeff_ count";
+
+                // borrar todos estos saves y el for
+                std::string data = "max_coeff_bit_count (<64?): ";
+                std::string max_coeff_str = std::to_string(max_coeff_bit_count);
+                saveData(data + max_coeff_str);
+
+                std::string datai = "Maximo valor del primer for n=util::mul_safe(slots_, std::size_t(2)): ";
+                std::string n_str = std::to_string(n);
+                saveData(datai + n_str);
+
+                std::string data2 = "coeff_modulus_sizea (coeff_modulus.size()): ";
+                std::string coeff_size = std::to_string(coeff_modulus_size);
+                saveData(data2 + coeff_size);
+
+                std::string data3 = "coeff_ count (parms.poly_modulus_degree();: ";
                 std::string coeff_count_st = std::to_string(coeff_count);
-                saveData(data3+coeff_count_st);
+                saveData(data3 + coeff_count_st);
+
+                std::string coeff_modulo_st;
+                std::string data4 = "modulo (coeff_modulus[j].bit_count()): ";
+                for (std::size_t j = 0; j < coeff_modulus_size; j++)
+                {
+                    coeff_modulo_st = std::to_string(coeff_modulus[j].bit_count());
+                    saveData(data4 + coeff_modulo_st);
+                }
                 // Creo que va por cada valor del vector expandido por el complemento conj
                 // el j seria el elemento K del RNS.
                 // y es multiplicado por el coeff_count que es el grado del polinomio N
                 // Rec que es el doble del input que es N/2
+
+                std::string plaintext_nonNTT;
+                // Me guardo la cantidad de elementos que va a tener destination que es el plaintext.
+                // Le agrego 1 es por que este dato lo guardo
+                // como primer elemento.
+                uint64_t N_non_NTT = (n - 1) + ((coeff_modulus_size - 1) * coeff_count) + 1;
+                plaintext_nonNTT = std::to_string(N_non_NTT);
+                int new_file = 1;
+                savePlaintext(plaintext_nonNTT, new_file);
+                uint64_t coeff_non_NTT = 0;
                 for (std::size_t i = 0; i < n; i++)
                 {
                     double coeffd = std::round(conj_values[i].real());
                     bool is_negative = std::signbit(coeffd);
 
                     std::uint64_t coeffu = static_cast<std::uint64_t>(std::fabs(coeffd));
-                    std::uint64_t testing; // borrar despues.
+
                     if (is_negative)
                     {
                         for (std::size_t j = 0; j < coeff_modulus_size; j++)
                         {
-                           // destination[i + (j * coeff_count)] = util::negate_uint_mod(
-                           //     util::barrett_reduce_64(coeffu, coeff_modulus[j]), coeff_modulus[j]);
-
-                            testing = util::negate_uint_mod(
+                            coeff_non_NTT = util::negate_uint_mod(
                                 util::barrett_reduce_64(coeffu, coeff_modulus[j]), coeff_modulus[j]);
-                            destination[i + (j * coeff_count)] = testing;
-                            std::string destination_str = "plaintext value: ";
-                            std::string testing_str = std::to_string(testing);
-                            std::string index_str = std::to_string(i+(j*coeff_count));
-                            saveData(index_str+ ": "+ destination_str+testing_str);
+                            destination[i + (j * coeff_count)] = coeff_non_NTT;
                         }
                     }
                     else
                     {
                         for (std::size_t j = 0; j < coeff_modulus_size; j++)
                         {
-                            //destination[i + (j * coeff_count)] = util::barrett_reduce_64(coeffu, coeff_modulus[j]);
-                            testing = util::barrett_reduce_64(coeffu, coeff_modulus[j]);
-                            destination[i + (j * coeff_count)] = testing;
-                            std::string destination_str = "plaintext value: ";
-                            std::string testing_str = std::to_string(testing);
-                            std::string index_str = std::to_string(i+(j*coeff_count));
-                            saveData(index_str+ ": "+ destination_str+testing_str);
+                            coeff_non_NTT = util::barrett_reduce_64(coeffu, coeff_modulus[j]);
+                            destination[i + (j * coeff_count)] = coeff_non_NTT;
                         }
                     }
-
+                }
+                int append_file = 0;
+                for (uint64_t i = 0; i < N_non_NTT ; i++)
+                {
+                    coeff_non_NTT = destination[i];
+                    plaintext_nonNTT = std::to_string(coeff_non_NTT);
+                    savePlaintext(plaintext_nonNTT, append_file);
                 }
             }
             else if (max_coeff_bit_count <= 128)
-            {   std::string data = "Mas de 64bits ";
+            {
+                std::string data = "Mas de 64bits "; // borrar
                 saveData(data);
 
                 for (std::size_t i = 0; i < n; i++)
@@ -618,8 +646,9 @@ namespace seal
                 }
             }
             else
-            {   std::string data = "otro caso ";
-                saveData(data);
+            {
+                std::string data = "otro caso "; // borrar
+                saveData(data); // borrar
                 // Slow case
                 auto coeffu(util::allocate_uint(coeff_modulus_size, pool));
                 for (std::size_t i = 0; i < n; i++)
@@ -659,9 +688,21 @@ namespace seal
             }
 
             // Transform to NTT domain
+            int index_ntt = 0; // borrar
             for (std::size_t i = 0; i < coeff_modulus_size; i++)
             {
                 util::ntt_negacyclic_harvey(destination.data(i * coeff_count), ntt_tables[i]);
+
+                // borrar
+                std::string ntt_str = "plaintext index and value: ";
+                for (std::size_t j = 0; j < n; j++)
+                {
+                    ;
+                    index_ntt = j + (i * coeff_count);
+                    std::string destination_ntt_str = std::to_string(destination[index_ntt]);
+                    std::string index_ntt_str = std::to_string(index_ntt);
+                    saveData(ntt_str + index_ntt_str + ": " + destination_ntt_str);
+                }
             }
 
             destination.parms_id() = parms_id;
