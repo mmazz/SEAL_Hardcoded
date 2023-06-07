@@ -582,7 +582,6 @@ namespace seal
                 plaintext_nonNTT = std::to_string(N_non_NTT);
                 bool new_file = 1;
                 saveData(file_name_ntt, plaintext_nonNTT, new_file);
-                new_file = 0;
                 uint64_t coeff_non_NTT = 0;
                 for (std::size_t i = 0; i < n; i++)
                 {
@@ -613,7 +612,7 @@ namespace seal
                 {
                     coeff_non_NTT = destination[i];
                     plaintext_nonNTT = std::to_string(coeff_non_NTT);
-                    saveData(file_name_ntt,plaintext_nonNTT, !new_file);
+                    saveData(file_name_ntt, plaintext_nonNTT, !new_file);
                 }
             }
             else if (max_coeff_bit_count <= 128)
@@ -702,7 +701,7 @@ namespace seal
                     std::string destination_ntt_str = std::to_string(destination[index_ntt]);
                     std::string index_ntt_str = std::to_string(index_ntt);
                     std::string message = ntt_str + index_ntt_str + ": " + destination_ntt_str;
-                    saveData(file_name, "", !new_file);
+                    saveData(file_name, message, !new_file);
                 }
             }
 
