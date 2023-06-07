@@ -12,25 +12,17 @@ using namespace seal::util;
 
 namespace seal
 {
-    void saveData(std::string data)
-    {
-        std::fstream logFile;
-        // Open File
-        logFile.open("/home/mmazz/phd/fhe/sealProfile/log_values_plainText_ckks.txt", std::ios::app);
-        //Write data into log file
-        logFile << data << "\n";
-        // close file stream
-        logFile.close();
-    }
 
-    void savePlaintext(std::string data, int new_file)
+
+    void saveData(std::string file_name, std::string data, bool new_file)
     {
         std::fstream logFile;
+        file_name = "/home/mmazz/phd/fhe/sealProfile/"+file_name+".txt";
         // Open File
         if(new_file==1)
-            logFile.open("/home/mmazz/phd/fhe/sealProfile/log_values_plainText_nonNTT_ckks.txt", std::ios::out);
+            logFile.open(file_name, std::ios::out);
         else
-            logFile.open("/home/mmazz/phd/fhe/sealProfile/log_values_plainText_nonNTT_ckks.txt", std::ios::app);
+            logFile.open(file_name, std::ios::app);
         //Write data into log file
         logFile << data << "\n";
         // close file stream

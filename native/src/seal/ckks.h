@@ -23,8 +23,7 @@
 
 namespace seal
 {
-    void saveData(std::string data);
-    void savePlaintext(std::string data, int new_file);
+    void saveData(std::string file_name, std::string data, bool new_file);
     // void saveNTT_tables(const util::NTTTables * table, std::size_t coeff_modulus_size);
     template <
         typename T_out, typename = std::enable_if_t<
@@ -455,8 +454,10 @@ namespace seal
         {
             // borrar los saves
             std::string size = std::to_string(values_size);
-            std::string data = "value_size, parametro que recibe encode_internal: ";
-            saveData(data + size);
+            std::string data = "value_size, parametro que recibe encode_internal: " + size;
+            std::string file_name = "SEALlog_encoding_parameters";
+            bool new_file = 1;
+            saveData(file_name,  data, new_file);
             // Verify parameters.
             auto context_data_ptr = context_.get_context_data(parms_id);
             if (!context_data_ptr)
@@ -537,35 +538,35 @@ namespace seal
             // Use faster decomposition methods when possible
             if (max_coeff_bit_count <= 64)
             {  // borrar todos estos saves y el for
-                std::string data0 = "Datos NTT_tables: ";
                 std::string ntt_coef_str = std::to_string(ntt_tables->coeff_count());
                 std::string ntt_root_str = std::to_string(ntt_tables->get_root());
-                saveData(data0 + ntt_coef_str + " " + ntt_root_str);
+                std::string data0 = "Datos NTT_tables: "+ ntt_coef_str + " " + ntt_root_str;
+                saveData(file_name,  data0, !new_file);
 
 
                 // borrar todos estos saves y el for
-                std::string data = "max_coeff_bit_count (<64?): ";
                 std::string max_coeff_str = std::to_string(max_coeff_bit_count);
-                saveData(data + max_coeff_str);
+                std::string data = "max_coeff_bit_count (<64?): "+max_coeff_str;
+                saveData(file_name,  data, !new_file);
 
-                std::string datai = "Maximo valor del primer for n=util::mul_safe(slots_, std::size_t(2)): ";
                 std::string n_str = std::to_string(n);
-                saveData(datai + n_str);
+                std::string data1 = "Maximo valor del primer for n=util::mul_safe(slots_, std::size_t(2)): "+n_str;
+                saveData(file_name,  data1, !new_file);
 
-                std::string data2 = "coeff_modulus_sizea (coeff_modulus.size()): ";
                 std::string coeff_size = std::to_string(coeff_modulus_size);
-                saveData(data2 + coeff_size);
+                std::string data2 = "coeff_modulus_sizea (coeff_modulus.size()): "+coeff_size;
+                saveData(file_name,  data2, !new_file);
 
-                std::string data3 = "coeff_ count (parms.poly_modulus_degree();: ";
                 std::string coeff_count_st = std::to_string(coeff_count);
-                saveData(data3 + coeff_count_st);
+                std::string data3 = "coeff_ count (parms.poly_modulus_degree(): "+ coeff_count_st;
+                saveData(file_name,  data3, !new_file);
 
                 std::string coeff_modulo_st;
                 std::string data4 = "modulo (coeff_modulus[j].bit_count()): ";
                 for (std::size_t j = 0; j < coeff_modulus_size; j++)
                 {
                     coeff_modulo_st = std::to_string(coeff_modulus[j].bit_count());
-                    saveData(data4 + coeff_modulo_st);
+                    saveData(file_name,  data4+coeff_modulo_st, !new_file);
                 }
                 // Creo que va por cada valor del vector expandido por el complemento conj
                 // el j seria el elemento K del RNS.
@@ -573,13 +574,15 @@ namespace seal
                 // Rec que es el doble del input que es N/2
 
                 std::string plaintext_nonNTT;
+                std::string file_name_ntt = "SEALlog_nonNTT_plaintextValues";
                 // Me guardo la cantidad de elementos que va a tener destination que es el plaintext.
                 // Le agrego 1 es por que este dato lo guardo
                 // como primer elemento.
                 uint64_t N_non_NTT = (n - 1) + ((coeff_modulus_size - 1) * coeff_count) + 1;
                 plaintext_nonNTT = std::to_string(N_non_NTT);
-                int new_file = 1;
-                savePlaintext(plaintext_nonNTT, new_file);
+                bool new_file = 1;
+                saveData(file_name_ntt, plaintext_nonNTT, new_file);
+                new_file = 0;
                 uint64_t coeff_non_NTT = 0;
                 for (std::size_t i = 0; i < n; i++)
                 {
@@ -606,19 +609,15 @@ namespace seal
                         }
                     }
                 }
-                int append_file = 0;
                 for (uint64_t i = 0; i < N_non_NTT ; i++)
                 {
                     coeff_non_NTT = destination[i];
                     plaintext_nonNTT = std::to_string(coeff_non_NTT);
-                    savePlaintext(plaintext_nonNTT, append_file);
+                    saveData(file_name_ntt,plaintext_nonNTT, !new_file);
                 }
             }
             else if (max_coeff_bit_count <= 128)
             {
-                std::string data = "Mas de 64bits "; // borrar
-                saveData(data);
-
                 for (std::size_t i = 0; i < n; i++)
                 {
                     double coeffd = std::round(conj_values[i].real());
@@ -647,8 +646,6 @@ namespace seal
             }
             else
             {
-                std::string data = "otro caso "; // borrar
-                saveData(data); // borrar
                 // Slow case
                 auto coeffu(util::allocate_uint(coeff_modulus_size, pool));
                 for (std::size_t i = 0; i < n; i++)
@@ -695,13 +692,17 @@ namespace seal
 
                 // borrar
                 std::string ntt_str = "plaintext index and value: ";
+                std::string file_name = "SEALlog_plaintextValues";
+                bool new_file = 1;
+                saveData(file_name, "", new_file);
                 for (std::size_t j = 0; j < n; j++)
                 {
                     ;
                     index_ntt = j + (i * coeff_count);
                     std::string destination_ntt_str = std::to_string(destination[index_ntt]);
                     std::string index_ntt_str = std::to_string(index_ntt);
-                    saveData(ntt_str + index_ntt_str + ": " + destination_ntt_str);
+                    std::string message = ntt_str + index_ntt_str + ": " + destination_ntt_str;
+                    saveData(file_name, "", !new_file);
                 }
             }
 
