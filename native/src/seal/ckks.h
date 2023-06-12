@@ -14,7 +14,6 @@
 #include <cmath>
 #include <complex>
 #include <limits>
-#include <string>
 #include <type_traits>
 #include <vector>
 #ifdef SEAL_USE_MSGSL
@@ -23,8 +22,6 @@
 
 namespace seal
 {
-    void saveData(std::string file_name, std::string data, bool new_file);
-    // void saveNTT_tables(const util::NTTTables * table, std::size_t coeff_modulus_size);
     template <
         typename T_out, typename = std::enable_if_t<
                             std::is_same<std::remove_cv_t<T_out>, double>::value ||
@@ -452,12 +449,6 @@ namespace seal
             const T *values, std::size_t values_size, parms_id_type parms_id, double scale, Plaintext &destination,
             MemoryPoolHandle pool) const
         {
-            // borrar los saves
-            std::string size = std::to_string(values_size);
-            std::string data = "value_size, parametro que recibe encode_internal: " + size;
-            std::string file_name = "SEALlog_encoding_parameters";
-            bool new_file = 1;
-            saveData(file_name,  data, new_file);
             // Verify parameters.
             auto context_data_ptr = context_.get_context_data(parms_id);
             if (!context_data_ptr)
@@ -496,12 +487,10 @@ namespace seal
             }
 
             auto ntt_tables = context_data.small_ntt_tables();
-            // saveNTT_tables(ntt_tables, coeff_modulus_size);
 
             // values_size is guaranteed to be no bigger than slots_
             std::size_t n = util::mul_safe(slots_, std::size_t(2));
 
-            // Aca lo expande con su complejo conjugado.
             auto conj_values = util::allocate<std::complex<double>>(n, pool, 0);
             for (std::size_t i = 0; i < values_size; i++)
             {
@@ -510,7 +499,6 @@ namespace seal
                 conj_values[matrix_reps_index_map_[i + slots_]] = std::conj(values[i]);
             }
             double fix = scale / static_cast<double>(n);
-            // algun tipo de multiplicacion, entenderla...
             fft_handler_.transform_from_rev(conj_values.get(), util::get_power_of_two(n), inv_root_powers_.get(), &fix);
 
             double max_coeff = 0;
@@ -537,52 +525,7 @@ namespace seal
 
             // Use faster decomposition methods when possible
             if (max_coeff_bit_count <= 64)
-            {  // borrar todos estos saves y el for
-                std::string ntt_coef_str = std::to_string(ntt_tables->coeff_count());
-                std::string ntt_root_str = std::to_string(ntt_tables->get_root());
-                std::string data0 = "Datos NTT_tables: "+ ntt_coef_str + " " + ntt_root_str;
-                saveData(file_name,  data0, !new_file);
-
-
-                // borrar todos estos saves y el for
-                std::string max_coeff_str = std::to_string(max_coeff_bit_count);
-                std::string data = "max_coeff_bit_count (<64?): "+max_coeff_str;
-                saveData(file_name,  data, !new_file);
-
-                std::string n_str = std::to_string(n);
-                std::string data1 = "Maximo valor del primer for n=util::mul_safe(slots_, std::size_t(2)): "+n_str;
-                saveData(file_name,  data1, !new_file);
-
-                std::string coeff_size = std::to_string(coeff_modulus_size);
-                std::string data2 = "coeff_modulus_sizea (coeff_modulus.size()): "+coeff_size;
-                saveData(file_name,  data2, !new_file);
-
-                std::string coeff_count_st = std::to_string(coeff_count);
-                std::string data3 = "coeff_ count (parms.poly_modulus_degree(): "+ coeff_count_st;
-                saveData(file_name,  data3, !new_file);
-
-                std::string coeff_modulo_st;
-                std::string data4 = "modulo (coeff_modulus[j].bit_count()): ";
-                for (std::size_t j = 0; j < coeff_modulus_size; j++)
-                {
-                    coeff_modulo_st = std::to_string(coeff_modulus[j].bit_count());
-                    saveData(file_name,  data4+coeff_modulo_st, !new_file);
-                }
-                // Creo que va por cada valor del vector expandido por el complemento conj
-                // el j seria el elemento K del RNS.
-                // y es multiplicado por el coeff_count que es el grado del polinomio N
-                // Rec que es el doble del input que es N/2
-
-                std::string plaintext_nonNTT;
-                std::string file_name_ntt = "SEALlog_nonNTT_plaintextValues";
-                // Me guardo la cantidad de elementos que va a tener destination que es el plaintext.
-                // Le agrego 1 es por que este dato lo guardo
-                // como primer elemento.
-                uint64_t N_non_NTT = (n - 1) + ((coeff_modulus_size - 1) * coeff_count) + 1;
-                plaintext_nonNTT = std::to_string(N_non_NTT);
-                bool new_file = 1;
-                saveData(file_name_ntt, plaintext_nonNTT, new_file);
-                uint64_t coeff_non_NTT = 0;
+            {
                 for (std::size_t i = 0; i < n; i++)
                 {
                     double coeffd = std::round(conj_values[i].real());
@@ -594,25 +537,17 @@ namespace seal
                     {
                         for (std::size_t j = 0; j < coeff_modulus_size; j++)
                         {
-                            coeff_non_NTT = util::negate_uint_mod(
+                            destination[i + (j * coeff_count)] = util::negate_uint_mod(
                                 util::barrett_reduce_64(coeffu, coeff_modulus[j]), coeff_modulus[j]);
-                            destination[i + (j * coeff_count)] = coeff_non_NTT;
                         }
                     }
                     else
                     {
                         for (std::size_t j = 0; j < coeff_modulus_size; j++)
                         {
-                            coeff_non_NTT = util::barrett_reduce_64(coeffu, coeff_modulus[j]);
-                            destination[i + (j * coeff_count)] = coeff_non_NTT;
+                            destination[i + (j * coeff_count)] = util::barrett_reduce_64(coeffu, coeff_modulus[j]);
                         }
                     }
-                }
-                for (uint64_t i = 0; i < N_non_NTT ; i++)
-                {
-                    coeff_non_NTT = destination[i];
-                    plaintext_nonNTT = std::to_string(coeff_non_NTT);
-                    saveData(file_name_ntt, plaintext_nonNTT, !new_file);
                 }
             }
             else if (max_coeff_bit_count <= 128)
@@ -684,25 +619,9 @@ namespace seal
             }
 
             // Transform to NTT domain
-            int index_ntt = 0; // borrar
             for (std::size_t i = 0; i < coeff_modulus_size; i++)
             {
                 util::ntt_negacyclic_harvey(destination.data(i * coeff_count), ntt_tables[i]);
-
-                // borrar
-                std::string ntt_str = "plaintext index and value: ";
-                std::string file_name = "SEALlog_plaintextValues";
-                bool new_file = 1;
-                saveData(file_name, "", new_file);
-                for (std::size_t j = 0; j < n; j++)
-                {
-                    ;
-                    index_ntt = j + (i * coeff_count);
-                    std::string destination_ntt_str = std::to_string(destination[index_ntt]);
-                    std::string index_ntt_str = std::to_string(index_ntt);
-                    std::string message = ntt_str + index_ntt_str + ": " + destination_ntt_str;
-                    saveData(file_name, message, !new_file);
-                }
             }
 
             destination.parms_id() = parms_id;
@@ -855,3 +774,4 @@ namespace seal
         FFTHandler fft_handler_;
     };
 } // namespace seal
+

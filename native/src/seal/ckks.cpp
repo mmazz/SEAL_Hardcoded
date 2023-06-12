@@ -4,48 +4,14 @@
 #include "seal/ckks.h"
 #include <random>
 #include <stdexcept>
-#include <fstream>
-
 
 using namespace std;
 using namespace seal::util;
 
 namespace seal
 {
-
-
-    void saveData(std::string file_name, std::string data, bool new_file)
-    {
-        std::fstream logFile;
-        file_name = "/home/mmazz/phd/fhe/sealProfile/"+file_name+".txt";
-        // Open File
-        if(new_file==1)
-            logFile.open(file_name, std::ios::out);
-        else
-            logFile.open(file_name, std::ios::app);
-        //Write data into log file
-        logFile << data << "\n";
-        // close file stream
-        logFile.close();
-    }
-
-
-  //  void saveNTT_tables(const util::NTTTables * table, std::size_t coeff_modulus_size)
-  //  {
-  //      std::fstream logFile;
-  //      // Open File
-  //      logFile.open("/home/mmazz/phd/fhe/sealProfile/log_NTT_table_ckks.txt", std::ios::app);
-  //      //Write data into log file
-  //      logFile << data << "\n";
-  //      // close file stream
-  //      logFile.close();
-  //  }
-
-
-
     CKKSEncoder::CKKSEncoder(const SEALContext &context) : context_(context)
     {
-
         // Verify parameters
         if (!context_.parameters_set())
         {
@@ -304,3 +270,4 @@ namespace seal
         destination.scale() = 1.0;
     }
 } // namespace seal
+

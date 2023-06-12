@@ -29,21 +29,43 @@ DWORD last_genrandom_error = 0;
 
 namespace seal
 {
+
+
+    int loadData()
+    {
+        std::string data;
+        int res=0;
+        std::fstream myfile;
+        std::string file_name = "/dev/hardcoded_random";
+        // Open File
+        myfile.open(file_name, std::ios::in);
+          if (myfile.is_open())
+          {
+            while ( getline (myfile,data) )
+            {
+              res = std::stoi(data);
+            }
+            myfile.close();
+          }
+        return res;
+    }
     void random_bytes(seal_byte *buf, size_t count)
     {
 #if SEAL_SYSTEM == SEAL_SYSTEM_UNIX_LIKE
-        random_device rd("/dev/urandom");
+        //random_device rd("/dev/urandom");
+        int random_value = loadData();
+
         while (count >= 4)
         {
             //*reinterpret_cast<uint32_t *>(buf) = rd();
-            *reinterpret_cast<uint32_t *>(buf) = 1;
+            *reinterpret_cast<uint32_t *>(buf) = random_value;
             buf += 4;
             count -= 4;
         }
         if (count)
         {
-            //uint32_t last = rd();
-            uint32_t last = 1;
+          //  uint32_t last = rd();
+            uint32_t last = random_value;
             memcpy(buf, &last, count);
         }
 #elif SEAL_SYSTEM == SEAL_SYSTEM_WINDOWS
@@ -225,3 +247,4 @@ namespace seal
         counter_++;
     }
 } // namespace seal
+
